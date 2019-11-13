@@ -1,0 +1,15 @@
+$ mkdir express-server
+$ cd express-server
+
+$ npm init
+#entry point - server.js
+
+$ npm install --save express multer cors nodemon
+
+# multer to handle files, cors for cross-origin support, 
+#   nodemon for hot-reloading otherwise you have to restart server manually
+
+$ mkdir repository
+
+#For local installation of nodemon run as below
+$ npx nodemon server.js
