@@ -8,7 +8,7 @@ app.use(bodyParser.json());
 app.use(cors());
 
 //custom imports
-const Connection = require('./db_connection');
+const Pool = require('./connection-pool');
 const uploadRoutes = require('./routes/uploads');
 const downloadRoutes = require('./routes/downloads');
 const usersRoutes = require('./routes/users');
@@ -20,34 +20,33 @@ app.use('/download', downloadRoutes);
 app.use('/users', usersRoutes);
 app.use('/login', loginRoutes);
 
-/*app.post('/login', (req, res) => {
-    console.log(req.body);
-    //Mock authentication
-    if (req.body) {
-        if (req.body.username === 'root' && req.body.password === 'root') {
-            const adminMenu = ['Users', 'Profile', 'Upload', 'Uploads', 'Finished', 'Stats'];
-            return res.status(200).send({ userId: 1, token: 'secretToken', role: 1, menu: adminMenu });
-        } else if (req.body.username === 'client' && req.body.password === 'client') {
-            const clientMenu = ['Profile', 'Upload', 'Uploads', 'Finished'];
-            return res.status(200).send({ userId: 2, token: 'secretToken', role: 2, menu: clientMenu });
-        }
-
-        return res.status(404).send('Invalid username or password');
-    }
-    res.status(500).send('Username and password are mandatory');
-}); */
-
-//Checks db connection
+//Checks db connection pool
 app.get('/check', (req, res) => {
     // console.log(req);
-    Connection.query('SELECT * FROM dms_status', (error, rows, fields) => {
-        if (!error) {
-            res.send(rows);
-        } else {
-            console.log('An error occured');
-            res.status(400).send('An error occured during the request');
+    Pool.getConnection((err, Connection) => {
+        //not connected
+        if (err) {
+            res.status(500).send('Internal server error');
+            return console.log('Fatal Error when creating connection: ', err);
         }
+        //connected
+        Connection.query('SELECT * FROM dms_status', (error, rows, fields) => {
+            //done with connection so we release it
+            Connection.release();
+
+            if (!error) {
+                res.send(rows);
+            } else {
+                console.log('An error occured:', error);
+                res.status(400).send('An error occured during the request');
+            }
+        });
     });
+});
+
+//checks server is up and running
+app.get('/raw', (req, res) => {
+    res.send('Hello, I did not crash and die!');
 });
 
 app.listen(8000, function() {

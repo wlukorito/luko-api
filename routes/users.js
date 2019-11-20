@@ -1,6 +1,6 @@
 const express = require('express');
 const Router = express.Router();
-const Connection = require('../db_connection');
+const Pool = require('../connection-pool');
 
 Router.post('/', (req, res) => {
     //destructure values from request body
@@ -44,14 +44,26 @@ Router.post('/', (req, res) => {
         2,
         comments
     ];
-    //execute insert
-    Connection.query(sql, values, (error, result, fields) => {
-        if (error) {
-            console.log(error);
-            return res.status(500).send('Error creating user');
-        }
 
-        res.status(200).send('Client created successfully');
+    Pool.getConnection((err, Connection) => {
+        //not connected
+        if (err) {
+            res.status(500).send('Internal server error');
+            return console.log('Fatal Error when creating connection: ', err);
+        }
+        //connected
+        //execute insert
+        Connection.query(sql, values, (error, result, fields) => {
+            //Release connection
+            Connection.release();
+
+            if (error) {
+                console.log('Error creating user: ', error);
+                return res.status(500).send('Error creating user');
+            }
+
+            res.status(200).send('Client created successfully');
+        });
     });
 });
 
